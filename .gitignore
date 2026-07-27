@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+*.log
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backups (не пушить бэкапы!)
+*.backup/
+data.backup/
+src.backup/
+tests.backup/
+
+# C++ compiled binary (но сохраняем исходники)
+src/cipherlab/ciphers/affine
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+all.txt
+benchmark_affine.py
+benchmark_simple.py
+
+# Streamlit
+.streamlit/
