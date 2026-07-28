@@ -2,10 +2,43 @@
 from __future__ import annotations
 
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 
 from cipherlab.alphabets import alphabet
+
+
+def _get_data_dir() -> Path:
+    """Определяет правильную папку с данными.
+    
+    Приоритет:
+    1. Папка рядом с исполняемым файлом (для PyInstaller)
+    2. Папка data в корне проекта
+    3. Папка src/cipherlab/../data
+    """
+    # Если запущено из PyInstaller
+    if getattr(sys, 'frozen', False):
+        # Бинарник .exe
+        base_dir = Path(sys.executable).parent
+        # Пробуем найти data рядом с .exe
+        data_dir = base_dir / 'data'
+        if data_dir.exists():
+            return data_dir
+        # Пробуем найти в папке выше (для структуры dist/)
+        data_dir = base_dir.parent / 'data'
+        if data_dir.exists():
+            return data_dir
+    
+    # Обычный Python запуск
+    # Пробуем найти data в корне проекта
+    project_root = Path(__file__).resolve().parents[3]  # cipherlab/stats/ -> проект
+    data_dir = project_root / 'data'
+    if data_dir.exists():
+        return data_dir
+    
+    # Если не нашли, возвращаем путь по умолчанию
+    return Path('data')
 
 
 def monogram_freq(text: str, lang: str) -> dict[str, float]:
@@ -39,5 +72,23 @@ def save_json(data: dict, path: str | Path) -> None:
 
 
 def load_json(path: str | Path) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
+    """Загружает JSON файл с автоматическим поиском пути."""
+    path = Path(path)
+    
+    # Если путь абсолютный или файл существует - загружаем
+    if path.is_absolute() or path.exists():
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    
+    # Пробуем найти относительно папки data
+    data_dir = _get_data_dir()
+    full_path = data_dir / path.name
+    
+    if not full_path.exists():
+        raise FileNotFoundError(
+            f"Файл {path.name} не найден! Искали в: {data_dir}\n"
+            f"Убедитесь, что файлы data находятся рядом с исполняемым файлом."
+        )
+    
+    with open(full_path, "r", encoding="utf-8") as f:
         return json.load(f)

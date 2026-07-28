@@ -8,6 +8,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+# Добавляем src в путь
 SRC_DIR = Path(__file__).resolve().parents[1] / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -17,7 +18,7 @@ import streamlit as st
 
 from cipherlab.breaker import auto_break
 from cipherlab.ciphers import CIPHERS
-from cipherlab.ciphers.affine import AffineCipher
+from cipherlab.ciphers.affine_wrapper import AffineCipher
 from cipherlab.format_preserving import decrypt_preserving_format, encrypt_preserving_format
 from cipherlab.stats.frequency import load_json
 
@@ -32,6 +33,7 @@ CIPHER_NAMES = {
     "affine": "Аффинный",
 }
 
+# Настройка страницы
 st.set_page_config(page_title="Криптоанализ классических шифров", layout="wide")
 st.title("Автоматическое распознавание и криптоанализ классических шифров")
 
@@ -163,15 +165,10 @@ with tab_freq:
         hide_index=True,
     )
 
-def main():
-    """Точка входа для запуска Streamlit из командной строки."""
-    import sys
-    import subprocess
-    from pathlib import Path
-    
-    # Запускаем streamlit
-    cmd = [sys.executable, "-m", "streamlit", "run", str(Path(__file__).resolve())]
-    subprocess.run(cmd)
-
+# ============================================================
+# ГЛАВНАЯ ТОЧКА ВХОДА - ТОЛЬКО ДЛЯ ПРЯМОГО ЗАПУСКА
+# ============================================================
 if __name__ == "__main__":
-    main()
+    # Это НЕ запускает сервер!
+    # Streamlit сам запускает сервер при команде streamlit run
+    pass

@@ -33,7 +33,7 @@ jobs:
         echo "Привет мир" | ./src/cipherlab/ciphers/affine encrypt 5 8 ru
         echo "Хъусад жуъ" | ./src/cipherlab/ciphers/affine decrypt 5 8 ru
     
-    - name: Upload artifact
+    -name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: affine-linux
@@ -189,24 +189,7 @@ jobs:
     
     - name: Build executable with PyInstaller
       run: |
-        pyinstaller \
-          --onefile \
-          --name cipherlab \
-          --add-data "src/cipherlab/ciphers/affine:src/cipherlab/ciphers" \
-          --collect-all streamlit \
-          --collect-all pandas \
-          --collect-all numpy \
-          --hidden-import streamlit.web.cli \
-          --hidden-import streamlit.runtime \
-          --hidden-import streamlit.runtime.scriptrunner \
-          --hidden-import streamlit.runtime.scriptrunner.script_runner \
-          --hidden-import streamlit.web.server \
-          --hidden-import streamlit.web.server.server \
-          --hidden-import streamlit.web.server.server_util \
-          --hidden-import streamlit.web.server.wsgi_app \
-          --hidden-import streamlit.web.server.routes \
-          --hidden-import streamlit.web.server.routes_util \
-          app/streamlit_app.py
+        pyinstaller --onefile --name cipherlab --add-data "src/cipherlab/ciphers/affine:src/cipherlab/ciphers" --collect-all streamlit --collect-all pandas --collect-all numpy --hidden-import streamlit.web.cli --hidden-import streamlit.runtime --hidden-import streamlit.runtime.scriptrunner --hidden-import streamlit.runtime.scriptrunner.script_runner --hidden-import streamlit.web.server --hidden-import streamlit.web.server.server --hidden-import streamlit.web.server.server_util --hidden-import streamlit.web.server.wsgi_app --hidden-import streamlit.web.server.routes --hidden-import streamlit.web.server.routes_util app/streamlit_app.py
       
     - name: Upload executable
       uses: actions/upload-artifact@v4
@@ -241,25 +224,9 @@ jobs:
         pip install pyinstaller streamlit pandas numpy
     
     - name: Build executable with PyInstaller
+      shell: cmd
       run: |
-        pyinstaller \
-          --onefile \
-          --name cipherlab \
-          --add-data "src/cipherlab/ciphers/affine.exe;src/cipherlab/ciphers" \
-          --collect-all streamlit \
-          --collect-all pandas \
-          --collect-all numpy \
-          --hidden-import streamlit.web.cli \
-          --hidden-import streamlit.runtime \
-          --hidden-import streamlit.runtime.scriptrunner \
-          --hidden-import streamlit.runtime.scriptrunner.script_runner \
-          --hidden-import streamlit.web.server \
-          --hidden-import streamlit.web.server.server \
-          --hidden-import streamlit.web.server.server_util \
-          --hidden-import streamlit.web.server.wsgi_app \
-          --hidden-import streamlit.web.server.routes \
-          --hidden-import streamlit.web.server.routes_util \
-          app/streamlit_app.py
+        pyinstaller --onefile --name cipherlab --add-data "src/cipherlab/ciphers/affine.exe;src/cipherlab/ciphers" --collect-all streamlit --collect-all pandas --collect-all numpy --hidden-import streamlit.web.cli --hidden-import streamlit.runtime --hidden-import streamlit.runtime.scriptrunner --hidden-import streamlit.runtime.scriptrunner.script_runner --hidden-import streamlit.web.server --hidden-import streamlit.web.server.server --hidden-import streamlit.web.server.server_util --hidden-import streamlit.web.server.wsgi_app --hidden-import streamlit.web.server.routes --hidden-import streamlit.web.server.routes_util app/streamlit_app.py
       
     - name: Upload executable
       uses: actions/upload-artifact@v4
