@@ -187,10 +187,27 @@ jobs:
         pip install -e .
         pip install pyinstaller streamlit pandas numpy
     
-    - name: Build executable
+    - name: Build executable with PyInstaller
       run: |
-        pyinstaller --onefile --name cipherlab --add-data "src/cipherlab/ciphers/affine:src/cipherlab/ciphers" app/streamlit_app.py
-    
+        pyinstaller \
+          --onefile \
+          --name cipherlab \
+          --add-data "src/cipherlab/ciphers/affine:src/cipherlab/ciphers" \
+          --collect-all streamlit \
+          --collect-all pandas \
+          --collect-all numpy \
+          --hidden-import streamlit.web.cli \
+          --hidden-import streamlit.runtime \
+          --hidden-import streamlit.runtime.scriptrunner \
+          --hidden-import streamlit.runtime.scriptrunner.script_runner \
+          --hidden-import streamlit.web.server \
+          --hidden-import streamlit.web.server.server \
+          --hidden-import streamlit.web.server.server_util \
+          --hidden-import streamlit.web.server.wsgi_app \
+          --hidden-import streamlit.web.server.routes \
+          --hidden-import streamlit.web.server.routes_util \
+          app/streamlit_app.py
+      
     - name: Upload executable
       uses: actions/upload-artifact@v4
       with:
@@ -223,10 +240,27 @@ jobs:
         pip install -e .
         pip install pyinstaller streamlit pandas numpy
     
-    - name: Build executable
+    - name: Build executable with PyInstaller
       run: |
-        pyinstaller --onefile --name cipherlab --add-data "src/cipherlab/ciphers/affine.exe;src/cipherlab/ciphers" app/streamlit_app.py
-    
+        pyinstaller \
+          --onefile \
+          --name cipherlab \
+          --add-data "src/cipherlab/ciphers/affine.exe;src/cipherlab/ciphers" \
+          --collect-all streamlit \
+          --collect-all pandas \
+          --collect-all numpy \
+          --hidden-import streamlit.web.cli \
+          --hidden-import streamlit.runtime \
+          --hidden-import streamlit.runtime.scriptrunner \
+          --hidden-import streamlit.runtime.scriptrunner.script_runner \
+          --hidden-import streamlit.web.server \
+          --hidden-import streamlit.web.server.server \
+          --hidden-import streamlit.web.server.server_util \
+          --hidden-import streamlit.web.server.wsgi_app \
+          --hidden-import streamlit.web.server.routes \
+          --hidden-import streamlit.web.server.routes_util \
+          app/streamlit_app.py
+      
     - name: Upload executable
       uses: actions/upload-artifact@v4
       with:
