@@ -162,3 +162,16 @@ with tab_freq:
         pd.DataFrame(top_bigrams, columns=["биграмма", "частота"]),
         hide_index=True,
     )
+
+def main():
+    """Точка входа для запуска Streamlit из командной строки."""
+    import sys
+    import subprocess
+    from pathlib import Path
+    
+    # Запускаем streamlit
+    cmd = [sys.executable, "-m", "streamlit", "run", str(Path(__file__).resolve())]
+    subprocess.run(cmd)
+
+if __name__ == "__main__":
+    main()
