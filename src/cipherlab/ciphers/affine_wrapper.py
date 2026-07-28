@@ -21,26 +21,45 @@ else:
 class AffineCipher(Cipher):
     name = "affine"
 
+    def _get_binary_path(self) -> Path:
+        """Возвращает путь к бинарнику с учётом ОС."""
+        # На Windows ищем .exe
+        if sys.platform == "win32":
+            exe_path = Path(__file__).parent / "affine.exe"
+            if exe_path.exists():
+                return exe_path
+            # Если нет .exe, может быть просто affine (для совместимости)
+            alt_path = Path(__file__).parent / "affine"
+            if alt_path.exists():
+                return alt_path
+            return exe_path  # Вернём .exe, хотя его нет
+        else:
+            # На Linux ищем без расширения
+            bin_path = Path(__file__).parent / "affine"
+            if bin_path.exists():
+                return bin_path
+            # Если нет, может быть .exe (редко, но бывает)
+            alt_path = Path(__file__).parent / "affine.exe"
+            if alt_path.exists():
+                return alt_path
+            return bin_path
+
     def _run_cpp(self, mode: str, text: str, a: int, b: int, lang: str) -> str:
         """Запускает C++ исполняемый файл с переданными аргументами."""
         if lang not in ("ru", "en"):
             raise ValueError(f"Аффинный шифр поддерживает только 'ru' или 'en', получен: {lang}")
         
-        if not AFFINE_BIN.exists():
-            # Если бинарник не найден, пробуем без расширения (для Linux)
-            if sys.platform != "win32":
-                alt_bin = Path(__file__).parent / "affine"
-                if alt_bin.exists():
-                    AFFINE_BIN = alt_bin
-                else:
-                    raise RuntimeError(
-                        f"C++ бинарник не найден: {AFFINE_BIN}. "
-                        f"Скомпилируйте его: g++ -std=c++17 -o {AFFINE_BIN.name} affine.cpp"
-                    )
+        binary = self._get_binary_path()
+        if not binary.exists():
+            if sys.platform == "win32":
+                raise RuntimeError(
+                    f"C++ бинарник не найден: {binary}. "
+                    f"Скомпилируйте его: cl /EHsc /std:c++17 /Fe:{binary.name} affine.cpp"
+                )
             else:
                 raise RuntimeError(
-                    f"C++ бинарник не найден: {AFFINE_BIN}. "
-                    f"Скомпилируйте его: cl /EHsc /std:c++17 /Fe:{AFFINE_BIN.name} affine.cpp"
+                    f"C++ бинарник не найден: {binary}. "
+                    f"Скомпилируйте его: g++ -std=c++17 -o {binary.name} affine.cpp"
                 )
         
         # Проверяем валидность ключа
@@ -51,7 +70,7 @@ class AffineCipher(Cipher):
         
         # Запускаем процесс
         proc = subprocess.run(
-            [str(AFFINE_BIN), mode, str(a), str(b), lang],
+            [str(binary), mode, str(a), str(b), lang],
             input=text.encode('utf-8'),
             capture_output=True,
             check=False
