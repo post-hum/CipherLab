@@ -5,12 +5,17 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 from cipherlab.ciphers.base import Cipher
 
-AFFINE_BIN = Path(__file__).parent / "affine"
+# Определяем имя бинарника в зависимости от ОС
+if sys.platform == "win32":
+    AFFINE_BIN = Path(__file__).parent / "affine.exe"
+else:
+    AFFINE_BIN = Path(__file__).parent / "affine"
 
 
 class AffineCipher(Cipher):
@@ -22,10 +27,21 @@ class AffineCipher(Cipher):
             raise ValueError(f"Аффинный шифр поддерживает только 'ru' или 'en', получен: {lang}")
         
         if not AFFINE_BIN.exists():
-            raise RuntimeError(
-                f"C++ бинарник не найден: {AFFINE_BIN}. "
-                "Скомпилируйте его: g++ -std=c++17 -o affine affine.cpp"
-            )
+            # Если бинарник не найден, пробуем без расширения (для Linux)
+            if sys.platform != "win32":
+                alt_bin = Path(__file__).parent / "affine"
+                if alt_bin.exists():
+                    AFFINE_BIN = alt_bin
+                else:
+                    raise RuntimeError(
+                        f"C++ бинарник не найден: {AFFINE_BIN}. "
+                        f"Скомпилируйте его: g++ -std=c++17 -o {AFFINE_BIN.name} affine.cpp"
+                    )
+            else:
+                raise RuntimeError(
+                    f"C++ бинарник не найден: {AFFINE_BIN}. "
+                    f"Скомпилируйте его: cl /EHsc /std:c++17 /Fe:{AFFINE_BIN.name} affine.cpp"
+                )
         
         # Проверяем валидность ключа
         from math import gcd
