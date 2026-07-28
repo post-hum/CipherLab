@@ -3,7 +3,7 @@
 Стратегия (без «угадывания» шифра заранее — сравниваются реальные результаты):
 
 1. Полибий распознаётся однозначно по составу шифртекста — только цифры.
-2. Для остальных (Цезарь / Атбаш / Виженер — все они замены в одном алфавите)
+2. Для остальных (Цезарь / Атбаш / Виженер / Аффинный — все они замены в одном алфавите)
    язык определяется по набору символов (кириллица ↔ латиница), после чего для
    КАЖДОГО кандидата-решения строится расшифровка и оценивается функцией
    «похожести на язык» (средний логарифм правдоподобия биграмм, см.
@@ -20,8 +20,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from math import gcd
 
 from cipherlab.alphabets import alphabet, alphabet_size, char_to_index, index_to_char, normalize
+from cipherlab.ciphers.affine_wrapper import AffineCipher
 from cipherlab.ciphers.atbash import AtbashCipher
 from cipherlab.ciphers.caesar import CaesarCipher
 from cipherlab.ciphers.polybius import PolybiusCipher
@@ -151,6 +153,16 @@ def _solve_with_key_length(ciphertext: str, lang: str, key_len: int) -> list[int
     return [_best_caesar_shift(ciphertext[col::key_len], lang) for col in range(key_len)]
 
 
+def _decrypt_vigenere_with_shifts(ciphertext: str, shifts: list[int], lang: str) -> str:
+    """Расшифровка Виженера с использованием списка сдвигов."""
+    n = alphabet_size(lang)
+    result = []
+    for i, ch in enumerate(ciphertext):
+        shift = shifts[i % len(shifts)]
+        result.append(index_to_char((char_to_index(ch, lang) - shift) % n, lang))
+    return "".join(result)
+
+
 def _break_shift_family(ciphertext: str, lang: str) -> _Candidate:
     """Взлом Цезаря/Виженера: перебор длины ключа, выбор по биграммной оценке.
 
@@ -168,10 +180,10 @@ def _break_shift_family(ciphertext: str, lang: str) -> _Candidate:
             candidate = _Candidate("caesar", lang, shift, plaintext, fitness)
         else:
             shifts = _solve_with_key_length(ciphertext, lang, key_len)
-            key = "".join(index_to_char(s, lang) for s in shifts)
-            plaintext = VigenereCipher().decrypt(ciphertext, key, lang)
+            plaintext = _decrypt_vigenere_with_shifts(ciphertext, shifts, lang)
             fitness = bigram_fitness(plaintext, lang)
-            candidate = _Candidate("vigenere", lang, key, plaintext, fitness)
+            key_display = "".join(index_to_char(s, lang) for s in shifts)
+            candidate = _Candidate("vigenere", lang, key_display, plaintext, fitness)
 
         # Более длинный ключ должен выигрывать с запасом (Оккам: при прочих
         # равных предпочитаем короткий ключ), поэтому у уже найденного варианта
@@ -182,24 +194,69 @@ def _break_shift_family(ciphertext: str, lang: str) -> _Candidate:
 
 
 def _break_atbash(ciphertext: str, lang: str) -> _Candidate:
+    """Взлом шифра Атбаш."""
     plaintext = AtbashCipher().decrypt(ciphertext, None, lang)
     return _Candidate("atbash", lang, None, plaintext, bigram_fitness(plaintext, lang))
 
 
+def _break_affine(ciphertext: str, lang: str) -> _Candidate | None:
+    """Взлом аффинного шифра перебором всех возможных ключей.
+    
+    Аффинный шифр имеет ключевое пространство:
+    - Русский: φ(33) * 33 = 20 * 33 = 660 ключей
+    - Английский: φ(26) * 26 = 12 * 26 = 312 ключей
+    
+    Для каждого ключа расшифровываем текст и оцениваем биграммную похожесть.
+    Выбираем ключ с максимальной оценкой.
+    """
+    n = alphabet_size(lang)
+    cipher = AffineCipher()
+    best: _Candidate | None = None
+    
+    # Перебираем все допустимые a (взаимно простые с n)
+    for a in range(1, n):
+        if gcd(a, n) != 1:
+            continue
+        # Перебираем все b
+        for b in range(n):
+            try:
+                plaintext = cipher.decrypt(ciphertext, (a, b), lang)
+                fitness = bigram_fitness(plaintext, lang)
+                if best is None or fitness > best.fitness:
+                    best = _Candidate("affine", lang, (a, b), plaintext, fitness)
+            except Exception:
+                # Если ключ невалидный или ошибка расшифровки - пропускаем
+                continue
+    
+    return best
+
+
 def _break_substitution(raw_text: str) -> _Candidate | None:
-    """Лучший кандидат среди Цезаря/Атбаша/Виженера по всем языкам."""
+    """Лучший кандидат среди Цезаря/Атбаша/Виженера/Аффинного по всем языкам."""
     best: _Candidate | None = None
     for lang in LANGS:
         text = normalize(raw_text, lang)
         if len(text) < 2:
             continue  # слишком мало букв этого алфавита — не тот язык / не текст
-        for candidate in (_break_shift_family(text, lang), _break_atbash(text, lang)):
+        
+        # Проверяем все кандидаты
+        candidates = [
+            _break_shift_family(text, lang),   # Цезарь + Виженер
+            _break_atbash(text, lang),          # Атбаш
+            _break_affine(text, lang),          # Аффинный ← НОВОЕ!
+        ]
+        
+        for candidate in candidates:
+            if candidate is None:
+                continue
             if best is None or candidate.fitness > best.fitness:
                 best = candidate
+    
     return best
 
 
 def _break_polybius(raw_text: str) -> _Candidate | None:
+    """Взлом шифра Полибия."""
     best: _Candidate | None = None
     for lang in LANGS:
         plaintext = PolybiusCipher().decrypt(raw_text, None, lang)
@@ -215,6 +272,7 @@ _CIPHER_CLASSES = {
     "atbash": AtbashCipher,
     "caesar": CaesarCipher,
     "vigenere": VigenereCipher,
+    "affine": AffineCipher,  # ← НОВОЕ!
 }
 
 
