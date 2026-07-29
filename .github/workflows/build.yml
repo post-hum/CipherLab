@@ -11,7 +11,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y g++ make
       - name: Compile C++
@@ -19,7 +19,7 @@ jobs:
           g++ -std=c++17 -O2 -o src/cipherlab/ciphers/affine src/cipherlab/ciphers/affine.cpp
           chmod +x src/cipherlab/ciphers/affine
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install Python deps
@@ -28,9 +28,15 @@ jobs:
           pip install pyinstaller streamlit pandas numpy
       - name: Build executable
         run: |
-          pyinstaller --onefile --name cipherlab --add-data "src/cipherlab/ciphers/affine:src/cipherlab/ciphers" --collect-all streamlit --collect-all pandas --collect-all numpy app/streamlit_app.py
+          pyinstaller --onefile --name cipherlab \
+            --add-data "data:data" \
+            --add-data "src/cipherlab/ciphers/affine:src/cipherlab/ciphers" \
+            --collect-all streamlit \
+            --collect-all pandas \
+            --collect-all numpy \
+            app/streamlit_app.py
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cipherlab-linux
           path: |
@@ -40,7 +46,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
       - name: Compile C++
@@ -48,7 +54,7 @@ jobs:
         run: |
           cl /EHsc /std:c++17 /O2 /Fe:src\cipherlab\ciphers\affine.exe src\cipherlab\ciphers\affine.cpp
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install Python deps
@@ -58,9 +64,9 @@ jobs:
       - name: Build executable
         shell: cmd
         run: |
-          pyinstaller --onefile --name cipherlab --add-data "src\cipherlab\ciphers\affine.exe;src\cipherlab\ciphers" --collect-all streamlit --collect-all pandas --collect-all numpy app\streamlit_app.py
+          pyinstaller --onefile --name cipherlab --add-data "data;data" --add-data "src\cipherlab\ciphers\affine.exe;src\cipherlab\ciphers" --collect-all streamlit --collect-all pandas --collect-all numpy app\streamlit_app.py
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cipherlab-windows
           path: |
@@ -72,12 +78,12 @@ jobs:
     needs: [build-linux, build-windows]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
         with:
           path: artifacts
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             artifacts/cipherlab-linux/affine

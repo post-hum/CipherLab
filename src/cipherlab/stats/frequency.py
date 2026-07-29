@@ -10,39 +10,31 @@ from cipherlab.alphabets import alphabet
 
 
 def _get_data_dir() -> Path:
-    """Определяет правильную папку с данными.
-    
-    Приоритет:
-    1. Папка рядом с исполняемым файлом (для PyInstaller)
-    2. Папка data в корне проекта
-    3. Папка src/cipherlab/../data
-    """
+    """Определяет правильную папку с данными для PyInstaller и разработки."""
     # Если запущено из PyInstaller
     if getattr(sys, 'frozen', False):
-        # Бинарник .exe
-        base_dir = Path(sys.executable).parent
-        # Пробуем найти data рядом с .exe
-        data_dir = base_dir / 'data'
-        if data_dir.exists():
-            return data_dir
-        # Пробуем найти в папке выше (для структуры dist/)
-        data_dir = base_dir.parent / 'data'
-        if data_dir.exists():
-            return data_dir
+        # sys._MEIPASS - временная папка с распакованными ресурсами
+        if hasattr(sys, '_MEIPASS'):
+            bundled_data = Path(sys._MEIPASS) / 'data'
+            if bundled_data.exists():
+                return bundled_data
+        
+        # Фолбэк: data рядом с .exe
+        exe_dir = Path(sys.executable).parent
+        local_data = exe_dir / 'data'
+        if local_data.exists():
+            return local_data
     
-    # Обычный Python запуск
-    # Пробуем найти data в корне проекта
-    project_root = Path(__file__).resolve().parents[3]  # cipherlab/stats/ -> проект
-    data_dir = project_root / 'data'
-    if data_dir.exists():
-        return data_dir
+    # Обычный запуск из исходников
+    project_root = Path(__file__).resolve().parents[3]
+    project_data = project_root / 'data'
+    if project_data.exists():
+        return project_data
     
-    # Если не нашли, возвращаем путь по умолчанию
     return Path('data')
 
 
 def monogram_freq(text: str, lang: str) -> dict[str, float]:
-    """Частота каждой буквы алфавита в нормализованном тексте (доли от 1.0)."""
     letters = alphabet(lang)
     counts = Counter(ch for ch in text if ch in letters)
     total = sum(counts.values())
@@ -52,15 +44,13 @@ def monogram_freq(text: str, lang: str) -> dict[str, float]:
 
 
 def bigram_freq(text: str, lang: str, top_n: int = 200) -> dict[str, float]:
-    """Частота перекрывающихся биграмм; возвращает top_n самых частых."""
     letters = set(alphabet(lang))
-    bigrams = [text[i:i + 2] for i in range(len(text) - 1)
-               if text[i] in letters and text[i + 1] in letters]
+    bigrams = [text[i:i+2] for i in range(len(text)-1) if text[i] in letters and text[i+1] in letters]
     counts = Counter(bigrams)
     total = sum(counts.values())
     if total == 0:
         return {}
-    freqs = {bg: c / total for bg, c in counts.most_common(top_n)}
+    freqs = {bg: c/total for bg, c in counts.most_common(top_n)}
     return freqs
 
 
@@ -72,23 +62,16 @@ def save_json(data: dict, path: str | Path) -> None:
 
 
 def load_json(path: str | Path) -> dict:
-    """Загружает JSON файл с автоматическим поиском пути."""
     path = Path(path)
-    
-    # Если путь абсолютный или файл существует - загружаем
-    if path.is_absolute() or path.exists():
+    if path.is_absolute() and path.exists():
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
-    
-    # Пробуем найти относительно папки data
     data_dir = _get_data_dir()
     full_path = data_dir / path.name
-    
     if not full_path.exists():
         raise FileNotFoundError(
             f"Файл {path.name} не найден! Искали в: {data_dir}\n"
-            f"Убедитесь, что файлы data находятся рядом с исполняемым файлом."
+            f"Убедитесь, что папка data находится рядом с исполняемым файлом."
         )
-    
     with open(full_path, "r", encoding="utf-8") as f:
         return json.load(f)
